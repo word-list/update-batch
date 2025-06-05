@@ -47,7 +47,11 @@ public class BatchUpdater
 
     private async Task WriteBatchAsync(Batch batch, string? status = null)
     {
-        if (status is not null) batch.Status = status;
+        if (status is not null)
+        {
+            Log.Info($"Status of batch {batch.Id} has changed to: {status}");
+            batch.Status = status;
+        }
 
         await s_db.SaveAsync(batch, new SaveConfig { OverrideTableName = BatchesTableName }).ConfigureAwait(false);
     }
@@ -114,6 +118,8 @@ public class BatchUpdater
 
     public async Task UpdateBatchAsync(string id)
     {
+        Log.Info($"Starting to update batch {id}");
+
         var batch = await GetBatchAsync(id).ConfigureAwait(false)
             ?? throw new Exception($"[{id}] Failed to retrieve batch, aborting");
 
@@ -127,9 +133,12 @@ public class BatchUpdater
             .OfType<string>()
             .ToHashSet();
 
-        await WriteBatchAsync(batch, "Downloading results").ConfigureAwait(false);
+        await WriteBatchAsync(batch, "Retrieving batch information").ConfigureAwait(false);
+        var openAIBatch = await _openAI.GetBatchStatusAsync(batch.OpenAIBatchId)
+            ?? throw new Exception($"[{id}] Failed to retrieve batch information from OpenAI");
 
-        var openAIResults = await _openAI.GetCompletedBatchFileContentAsync(batch.OpenAIBatchId).ConfigureAwait(false)
+        await WriteBatchAsync(batch, "Retrieving response").ConfigureAwait(false);
+        var openAIResults = await _openAI.GetCompletedBatchFileContentAsync(openAIBatch.OutputFileId).ConfigureAwait(false)
             ?? throw new Exception($"[{id}] Failed to retrieve file content from OpenAI");
 
         await WriteBatchAsync(batch, "Parsing results").ConfigureAwait(false);

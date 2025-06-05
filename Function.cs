@@ -6,6 +6,7 @@ using Amazon.Lambda.Serialization.SystemTextJson;
 using Amazon.Lambda.SQSEvents;
 using WordList.Common.Messaging;
 using WordList.Common.Messaging.Messages;
+using WordList.Processing.UpdateBatch.Models;
 namespace WordList.Processing.UpdateBatch;
 
 public class Function
@@ -53,6 +54,9 @@ public class Function
 
 [JsonSerializable(typeof(string))]
 [JsonSerializable(typeof(SQSEvent))]
+[JsonSerializable(typeof(Batch)]
+[JsonSerializable(typeof(Prompt))]
+[JsonSerializable(typeof(List<string>))]
 public partial class LambdaFunctionJsonSerializerContext : JsonSerializerContext
 {
 }

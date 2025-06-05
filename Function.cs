@@ -54,9 +54,6 @@ public class Function
 
 [JsonSerializable(typeof(string))]
 [JsonSerializable(typeof(SQSEvent))]
-[JsonSerializable(typeof(Batch)]
-[JsonSerializable(typeof(Prompt))]
-[JsonSerializable(typeof(List<string>))]
 public partial class LambdaFunctionJsonSerializerContext : JsonSerializerContext
 {
 }

@@ -13,7 +13,7 @@ public class Prompt
     public string PromptId { get; set; }
 
     [DynamoDBProperty("words")]
-    public required List<string> Words { get; set; } = [];
+    public required string[] Words { get; set; } = [];
 
     [DynamoDBProperty("text")]
     public required string Text { get; set; }

@@ -1,0 +1,54 @@
+name: Build and Deploy
+
+on:
+    push:
+        branches:
+            - main
+
+jobs:
+    build:
+        runs-on: ubuntu-24.04-arm
+        environment: staging
+        permissions:
+          packages: read
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+
+            - name: Setup .NET SDK
+              uses: actions/setup-dotnet@v4
+              with:
+                dotnet-version: '8.0.x'
+
+            - name: Setup AOT dependencies
+              run: |
+                sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
+
+            - name: Authenticate Nuget
+              run: |
+                dotnet nuget add source "https://nuget.pkg.github.com/word-list/index.json" \
+                  --store-password-in-clear-text \
+                  --name "GitHub" \
+                  --username ${{ github.actor }} \
+                  --password ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Restore Dependencies
+              run: dotnet restore
+
+            - name: Build
+              run: dotnet publish --self-contained -p:PublishAot=true -p:IlcEnableStaticCompilation=true -r linux-arm64 -c Release
+
+            - name: Package Lambda
+              run: |
+                cd bin/Release/net8.0/linux-arm64/publish
+                zip -r lambda-package.zip *
+            
+            - name: Configure AWS Credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                aws-region: eu-west-2
+
+            - name: Deploy Lambda
+              run: aws lambda update-function-code --function-name ${{ vars.TARGET_LAMBDA_NAME }} --zip-file fileb://$(pwd)/bin/Release/net8.0/linux-arm64/publish/lambda-package.zip

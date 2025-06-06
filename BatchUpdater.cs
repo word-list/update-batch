@@ -143,7 +143,7 @@ public class BatchUpdater
 
         await WriteBatchAsync(batch, "Parsing results").ConfigureAwait(false);
 
-        var items = openAIResults.Select(result => (result.CustomId, result.Response.Body.Output.Content[0].Text));
+        var items = openAIResults.Select(result => (result.CustomId, result.Response.Body.Output[0].Content[0].Text));
         var updateWordMessages = GetUpdateWordMessages(batch.Id, items, requestedWords).ToList();
 
         // Figure out which words we need to re-request

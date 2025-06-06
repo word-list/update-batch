@@ -149,6 +149,9 @@ public class BatchUpdater
         // Figure out which words we need to re-request
         var wordsToQuery = requestedWords.Except(updateWordMessages.Select(message => message.Word)).ToList();
 
+
+        await WriteBatchAsync(batch, "Requesting word updates").ConfigureAwait(false);
+
         if (updateWordMessages.Count > 0)
         {
             Log.Info($"Sending {updateWordMessages.Count} update word message(s)");
@@ -175,6 +178,8 @@ public class BatchUpdater
         {
             Log.Info("No words need to be re-requested");
         }
+
+        await WriteBatchAsync(batch, "Completed").ConfigureAwait(false)
     }
 }
 

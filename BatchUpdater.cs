@@ -144,29 +144,32 @@ public class BatchUpdater
         await WriteBatchAsync(batch, "Parsing results").ConfigureAwait(false);
 
         var items = openAIResults.Select(result => (result.CustomId, result.Response.Body.Output.Content[0].Text));
-        var messages = GetUpdateWordMessages(batch.Id, items, requestedWords).ToList();
+        var updateWordMessages = GetUpdateWordMessages(batch.Id, items, requestedWords).ToList();
 
         // Figure out which words we need to re-request
-        var rerequestWords = requestedWords.Except(messages.Select(message => message.Word)).ToList();
+        var wordsToQuery = requestedWords.Except(updateWordMessages.Select(message => message.Word)).ToList();
 
-        if (messages.Count > 0)
+        if (updateWordMessages.Count > 0)
         {
             Log.Info("Sending update word messages");
-            var updateSender = MessageQueues.UpdateWords.GetBatchSender(Log);
-            updateSender.AddRange(messages);
-            await updateSender.SendAllMessagesAsync().ConfigureAwait(false);
+            await MessageQueues.UpdateWords
+                .SendBatchedMessagesAsync(Log, updateWordMessages)
+                .ConfigureAwait(false);
         }
         else
         {
             Log.Info("No update word messages to send");
         }
 
-        if (rerequestWords.Count > 0)
+        if (wordsToQuery.Count > 0)
         {
-            Log.Info($"Re-requesting {rerequestWords.Count} word(s)");
-            var querySender = MessageQueues.QueryWords.GetBatchSender(Log);
-            querySender.AddRange(rerequestWords.Select(word => new QueryWordMessage { Word = word }));
-            await querySender.SendAllMessagesAsync().ConfigureAwait(false);
+            Log.Info($"Re-requesting {wordsToQuery.Count} word(s)");
+            await MessageQueues.QueryWords
+                .SendBatchedMessagesAsync(
+                    Log,
+                    wordsToQuery.Select(word => new QueryWordMessage { Word = word })
+                )
+                .ConfigureAwait(false);
         }
         else
         {

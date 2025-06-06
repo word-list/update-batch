@@ -179,7 +179,7 @@ public class BatchUpdater
             Log.Info("No words need to be re-requested");
         }
 
-        await WriteBatchAsync(batch, "Completed").ConfigureAwait(false)
+        await WriteBatchAsync(batch, "Completed").ConfigureAwait(false);
     }
 }
 

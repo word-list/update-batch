@@ -151,7 +151,7 @@ public class BatchUpdater
 
         if (updateWordMessages.Count > 0)
         {
-            Log.Info("Sending update word messages");
+            Log.Info($"Sending {updateWordMessages.Count} update word message(s)");
             await MessageQueues.UpdateWords
                 .SendBatchedMessagesAsync(Log, updateWordMessages)
                 .ConfigureAwait(false);

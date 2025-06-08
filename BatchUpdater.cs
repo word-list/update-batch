@@ -71,46 +71,48 @@ public class BatchUpdater
                 continue;
             }
 
-            var responseItems = responseText.Split(",").Select(item => item.Trim().ToLower()).ToArray();
-            if (responseItems.Length != 5)
+            foreach (var responseLine in responseText.Split('\n'))
             {
-                log.Error($"Invalid/unexpected response text from AI for prompt ID {promptId}: {responseText}");
-                continue;
+                var responseItems = responseLine.Split(",").Select(item => item.Trim().ToLower()).ToArray();
+                if (responseItems.Length != 5)
+                {
+                    log.Error($"Invalid/unexpected response text from AI for prompt ID {promptId}: {responseLine}");
+                    continue;
+                }
+
+                /* We're expecting results in CSV format in the form:
+                 *  word, offensiveness, commonness, sentiment, word_types
+                 */
+                var word = responseItems[0];
+                if (outputWords.Contains(word))
+                {
+                    log.Error($"Skipping duplicate word in response from AI for prompt ID {promptId}: {responseText}");
+                    continue;
+                }
+
+                if (!requestedWords.Contains(word))
+                {
+                    log.Error($"Skipping non-requested word in response from AI for prompt ID {promptId}: {responseText}");
+                    continue;
+                }
+
+                if (!int.TryParse(responseItems[1], out int offensiveness)
+                    || !int.TryParse(responseItems[2], out int commonness)
+                    || !int.TryParse(responseItems[3], out int sentiment))
+                    throw new Exception($"[{batchId}] Invalid/unexpected value in response to prompt ID {promptId}: {responseText}");
+
+                var wordTypes = responseItems[4].Split("/").Select(item => item.Trim().ToLower()).ToArray();
+
+                outputMessages.Add(new UpdateWordMessage
+                {
+                    Word = word,
+                    Offensiveness = offensiveness,
+                    Commonness = commonness,
+                    Sentiment = sentiment,
+                    WordTypes = wordTypes
+                });
+                outputWords.Add(word);
             }
-
-            /* We're expecting results in CSV format in the form:
-             *  word, offensiveness, commonness, sentiment, word_types
-             */
-            var word = responseItems[0];
-            if (outputWords.Contains(word))
-            {
-                log.Error($"Skipping duplicate word in response from AI for prompt ID {promptId}: {responseText}");
-                continue;
-            }
-
-            if (!requestedWords.Contains(word))
-            {
-                log.Error($"Skipping non-requested word in response from AI for prompt ID {promptId}: {responseText}");
-                continue;
-            }
-
-            int offensiveness, commonness, sentiment;
-            if (!int.TryParse(responseItems[1], out offensiveness)
-                || !int.TryParse(responseItems[2], out commonness)
-                || !int.TryParse(responseItems[3], out sentiment))
-                throw new Exception($"[{batchId}] Invalid/unexpected value in response to prompt ID {promptId}: {responseText}");
-
-            var wordTypes = responseItems[4].Split("/").Select(item => item.Trim().ToLower()).ToArray();
-
-            outputMessages.Add(new UpdateWordMessage
-            {
-                Word = word,
-                Offensiveness = offensiveness,
-                Commonness = commonness,
-                Sentiment = sentiment,
-                WordTypes = wordTypes
-            });
-            outputWords.Add(word);
         }
 
         return outputMessages.ToArray();

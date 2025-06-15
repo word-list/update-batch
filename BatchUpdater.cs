@@ -74,7 +74,7 @@ public class BatchUpdater
             foreach (var responseLine in responseText.Split('\n'))
             {
                 var responseItems = responseLine.Split(",").Select(item => item.Trim().ToLower()).ToArray();
-                if (responseItems.Length != 5)
+                if (responseItems.Length != 10)
                 {
                     log.Error($"Invalid/unexpected response text from AI for prompt ID {promptId}: {responseLine}");
                     continue;

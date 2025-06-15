@@ -98,10 +98,15 @@ public class BatchUpdater
 
                 if (!int.TryParse(responseItems[1], out int offensiveness)
                     || !int.TryParse(responseItems[2], out int commonness)
-                    || !int.TryParse(responseItems[3], out int sentiment))
+                    || !int.TryParse(responseItems[3], out int sentiment)
+                    || !int.TryParse(responseItems[4], out int formality)
+                    || !int.TryParse(responseItems[5], out int culturalSensitivity)
+                    || !int.TryParse(responseItems[6], out int figurativeness)
+                    || !int.TryParse(responseItems[7], out int complexity)
+                    || !int.TryParse(responseItems[8], out int political))
                     throw new Exception($"[{batchId}] Invalid/unexpected value in response to prompt ID {promptId}: {responseText}");
 
-                var wordTypes = responseItems[4].Split("/").Select(item => item.Trim().ToLower()).ToArray();
+                var wordTypes = responseItems[9].Split("/").Select(item => item.Trim().ToLower()).ToArray();
 
                 outputMessages.Add(new UpdateWordMessage
                 {
@@ -109,7 +114,12 @@ public class BatchUpdater
                     Offensiveness = offensiveness,
                     Commonness = commonness,
                     Sentiment = sentiment,
-                    WordTypes = wordTypes
+                    Formality = formality,
+                    CulturalSensitivity = culturalSensitivity,
+                    Figurativeness = figurativeness,
+                    Complexity = complexity,
+                    Political = political,
+                    WordTypes = wordTypes,
                 });
                 outputWords.Add(word);
             }

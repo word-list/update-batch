@@ -6,6 +6,7 @@ using WordList.Common.OpenAI;
 using WordList.Common.Messaging.Messages;
 using WordList.Processing.UpdateBatch.Models;
 using WordList.Common.Messaging;
+using WordList.Data.Sql;
 
 namespace WordList.Processing.UpdateBatch;
 
@@ -14,6 +15,7 @@ public class BatchUpdater
     private static DynamoDBContext s_db = new DynamoDBContextBuilder().Build();
     private static AmazonS3Client s_s3 = new();
     private static AmazonSQSClient s_sqs = new();
+    private static AttributeParser s_attributeParser = new();
 
     private OpenAIClient _openAI;
 
@@ -74,51 +76,28 @@ public class BatchUpdater
             foreach (var responseLine in responseText.Split('\n'))
             {
                 var responseItems = responseLine.Split(",").Select(item => item.Trim().ToLower()).ToArray();
-                if (responseItems.Length != 10)
-                {
-                    log.Error($"Invalid/unexpected response length from AI for prompt ID {promptId} (expected 10, got {responseItems.Length}): {responseLine}");
-                    continue;
-                }
 
-                /* We're expecting results in CSV format in the form:
-                 *  word, offensiveness, commonness, sentiment, word_types
-                 */
                 var word = responseItems[0];
                 if (outputWords.Contains(word))
                 {
-                    log.Error($"Skipping duplicate word in response from AI for prompt ID {promptId}: {responseText}");
+                    log.Error($"Skipping duplicate word in response from AI for prompt ID {promptId}: {responseLine}");
                     continue;
                 }
 
                 if (!requestedWords.Contains(word))
                 {
-                    log.Error($"Skipping non-requested word in response from AI for prompt ID {promptId}: {responseText}");
+                    log.Error($"Skipping non-requested word in response from AI for prompt ID {promptId}: {responseLine}");
                     continue;
                 }
 
-                if (!int.TryParse(responseItems[1], out int offensiveness)
-                    || !int.TryParse(responseItems[2], out int commonness)
-                    || !int.TryParse(responseItems[3], out int sentiment)
-                    || !int.TryParse(responseItems[4], out int formality)
-                    || !int.TryParse(responseItems[5], out int culturalSensitivity)
-                    || !int.TryParse(responseItems[6], out int figurativeness)
-                    || !int.TryParse(responseItems[7], out int complexity)
-                    || !int.TryParse(responseItems[8], out int political))
-                    throw new Exception($"[{batchId}] Invalid/unexpected value in response to prompt ID {promptId}: {responseText}");
+                var attributes = s_attributeParser.ParseAttributesFromResponse(responseItems, 1, responseItems.Length - 2);
 
-                var wordTypes = responseItems[9].Split("/").Select(item => item.Trim().ToLower()).ToArray();
+                var wordTypes = responseItems[^1].Split("/").Select(item => item.Trim().ToLower()).ToArray();
 
                 outputMessages.Add(new UpdateWordMessage
                 {
                     Word = word,
-                    Offensiveness = offensiveness,
-                    Commonness = commonness,
-                    Sentiment = sentiment,
-                    Formality = formality,
-                    CulturalSensitivity = culturalSensitivity,
-                    Figurativeness = figurativeness,
-                    Complexity = complexity,
-                    Political = political,
+                    Attributes = attributes,
                     WordTypes = wordTypes,
                 });
                 outputWords.Add(word);
@@ -131,6 +110,8 @@ public class BatchUpdater
     public async Task UpdateBatchAsync(string id)
     {
         Log.Info($"Starting to update batch {id}");
+
+        await s_attributeParser.LoadAttributesAsync().ConfigureAwait(false);
 
         var batch = await GetBatchAsync(id).ConfigureAwait(false)
             ?? throw new Exception($"[{id}] Failed to retrieve batch, aborting");

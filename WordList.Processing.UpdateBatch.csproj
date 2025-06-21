@@ -30,6 +30,7 @@
     <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.1.3" />
     <PackageReference Include="AWSSDK.S3" Version="4.0.0.5" />
     <PackageReference Include="AWSSDK.SQS" Version="4.0.0.4" />
-    <PackageReference Include="WordList.Common" Version="0.2.0" />
+    <PackageReference Include="WordList.Common" Version="0.3.0" />
+    <PackageReference Include="WordList.Data.Sql" Version="0.6.0" />
   </ItemGroup>
 </Project>

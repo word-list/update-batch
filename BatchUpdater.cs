@@ -90,7 +90,16 @@ public class BatchUpdater
                     continue;
                 }
 
-                var attributes = s_attributeParser.ParseAttributesFromResponse(responseItems, 1, responseItems.Length - 2);
+                Dictionary<string, int> attributes;
+                try
+                {
+                    attributes = s_attributeParser.ParseAttributesFromResponse(responseItems, 1, responseItems.Length - 2);
+                }
+                catch (Exception)
+                {
+                    Log.Error($"Failed to parse attributes for word '{word}' in response from AI for prompt ID {promptId}: {responseLine}");
+                    throw;
+                }
 
                 var wordTypes = responseItems[^1].Split("/").Select(item => item.Trim().ToLower()).ToArray();
 

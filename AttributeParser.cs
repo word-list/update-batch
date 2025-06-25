@@ -40,7 +40,7 @@ public class AttributeParser
 
         if (firstIndex + lastIndex != s_attributeNames.Count)
         {
-            throw new InvalidDataException($"Wrong number of response items.  Expected: {s_attributeNames.Count}, got: {firstIndex + lastIndex}");
+            throw new InvalidDataException($"Wrong number of attribute items.  Expected: {s_attributeNames.Count}, got: {firstIndex + lastIndex}");
         }
 
         var attributes = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);

@@ -38,7 +38,7 @@ public class AttributeParser
             throw new InvalidOperationException("Indices are out of range.");
         }
 
-        if ((lastIndex - firstIndex) != s_attributeNames.Count)
+        if ((lastIndex - firstIndex) != s_attributeNames.Count - 1)
         {
             throw new InvalidDataException($"Wrong number of attribute items.  Expected: {s_attributeNames.Count}, got: {lastIndex - firstIndex}");
         }

@@ -38,9 +38,9 @@ public class AttributeParser
             throw new InvalidOperationException("Indices are out of range.");
         }
 
-        if (firstIndex + lastIndex != s_attributeNames.Count)
+        if ((lastIndex - firstIndex) != s_attributeNames.Count)
         {
-            throw new InvalidDataException($"Wrong number of attribute items.  Expected: {s_attributeNames.Count}, got: {firstIndex + lastIndex}");
+            throw new InvalidDataException($"Wrong number of attribute items.  Expected: {s_attributeNames.Count}, got: {lastIndex - firstIndex}");
         }
 
         var attributes = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);

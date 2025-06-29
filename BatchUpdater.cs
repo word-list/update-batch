@@ -6,7 +6,7 @@ using WordList.Common.OpenAI;
 using WordList.Common.Messaging.Messages;
 using WordList.Processing.UpdateBatch.Models;
 using WordList.Common.Messaging;
-using WordList.Data.Sql;
+using WordList.Common.Status;
 
 namespace WordList.Processing.UpdateBatch;
 
@@ -58,7 +58,7 @@ public class BatchUpdater
         await s_db.SaveAsync(batch, new SaveConfig { OverrideTableName = BatchesTableName }).ConfigureAwait(false);
     }
 
-    private UpdateWordMessage[] GetUpdateWordMessages(string batchId, IEnumerable<(string, string?)> responses, HashSet<string> requestedWords)
+    private UpdateWordMessage[] GetUpdateWordMessages(string correlationId, string batchId, IEnumerable<(string, string?)> responses, HashSet<string> requestedWords)
     {
         var outputWords = new HashSet<string>();
         var outputMessages = new List<UpdateWordMessage>();
@@ -105,6 +105,7 @@ public class BatchUpdater
 
                 outputMessages.Add(new UpdateWordMessage
                 {
+                    CorrelationId = correlationId,
                     Word = word,
                     Attributes = attributes,
                     WordTypes = wordTypes,
@@ -124,6 +125,8 @@ public class BatchUpdater
 
         var batch = await GetBatchAsync(id).ConfigureAwait(false)
             ?? throw new Exception($"[{id}] Failed to retrieve batch, aborting");
+
+        var status = new StatusClient(batch.CorrelationId ?? Guid.NewGuid().ToString());
 
         if (string.IsNullOrEmpty(batch.OpenAIBatchId))
             throw new Exception($"[{id}] OpenAIBatchId is not present, aborting");
@@ -146,11 +149,10 @@ public class BatchUpdater
         await WriteBatchAsync(batch, "Parsing results").ConfigureAwait(false);
 
         var items = openAIResults.Select(result => (result.CustomId, result.Response.Body.Output[0].Content[0].Text));
-        var updateWordMessages = GetUpdateWordMessages(batch.Id, items, requestedWords).ToList();
+        var updateWordMessages = GetUpdateWordMessages(batch.CorrelationId, batch.Id, items, requestedWords).ToList();
 
         // Figure out which words we need to re-request
         var wordsToQuery = requestedWords.Except(updateWordMessages.Select(message => message.Word)).ToList();
-
 
         await WriteBatchAsync(batch, "Requesting word updates").ConfigureAwait(false);
 
@@ -172,9 +174,10 @@ public class BatchUpdater
             await MessageQueues.QueryWords
                 .SendBatchedMessagesAsync(
                     Log,
-                    wordsToQuery.Select(word => new QueryWordMessage { Word = word })
+                    wordsToQuery.Select(word => new QueryWordMessage { CorrelationId = status.StatusId, Word = word })
                 )
                 .ConfigureAwait(false);
+            await status.IncreaseRetriedWordsAsync(wordsToQuery.Count).ConfigureAwait(false);
         }
         else
         {

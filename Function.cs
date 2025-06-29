@@ -5,8 +5,6 @@ using Amazon.Lambda.RuntimeSupport;
 using Amazon.Lambda.Serialization.SystemTextJson;
 using Amazon.Lambda.SQSEvents;
 using WordList.Common.Messaging;
-using WordList.Common.Messaging.Messages;
-using WordList.Processing.UpdateBatch.Models;
 namespace WordList.Processing.UpdateBatch;
 
 public class Function

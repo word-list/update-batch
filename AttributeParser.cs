@@ -1,6 +1,6 @@
 using System.Security.Cryptography.X509Certificates;
-using WordList.Data.Sql;
-using WordList.Data.Sql.Models;
+using WordList.Common.Words;
+using WordList.Common.Words.Models;
 
 namespace WordList.Processing.UpdateBatch;
 

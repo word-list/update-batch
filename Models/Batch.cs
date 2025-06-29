@@ -8,6 +8,9 @@ public class Batch
     [DynamoDBHashKey("id")]
     public string Id { get; set; }
 
+    [DynamoDBProperty("correlation_id")]
+    public string? CorrelationId { get; set; }
+
     [DynamoDBProperty("openai_batch_id")]
     public string? OpenAIBatchId { get; set; }
 

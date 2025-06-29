@@ -24,7 +24,7 @@ public class Function
 
         var updater = new BatchUpdater(log);
 
-        foreach (var batchId in messages.Select(message => message.BatchId))
+        foreach (var batchId in messages.Select(message => message.BatchId).Distinct())
         {
             try
             {
